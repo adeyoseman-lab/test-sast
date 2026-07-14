@@ -25,7 +25,7 @@ jobs:
           output: 'trivy.sarif'
       
       - name: Upload SARIF
-        uses: github/codeql-action/upload-sarif@v2
+        uses: github/codeql-action/upload-sarif@v3  # ✅ UBAH DARI v2 KE v3
         if: always()
         with:
           sarif_file: 'trivy.sarif'

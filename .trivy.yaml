@@ -1,0 +1,36 @@
+# Trivy Configuration File
+# Reference: https://aquasecurity.github.io/trivy/latest/docs/configuration/config-file/
+
+# Severity levels to scan for
+severity:
+  - CRITICAL
+  - HIGH
+  - MEDIUM
+
+# Skip scanning these paths
+skip-dirs:
+  - vendor
+  - node_modules
+  - test
+  - tests
+  - .git
+
+# Scan these file types
+file-patterns:
+  - '*.php'
+  - '*.py'
+  - '*.js'
+  - 'package.json'
+  - 'composer.json'
+  - 'requirements.txt'
+  - 'Gemfile'
+  - 'pom.xml'
+  - 'build.gradle'
+
+# Vuln database
+db-repository: ghcr.io/aquasecurity/trivy-db
+updates:
+  enabled: true
+
+# Output format
+format: sarif

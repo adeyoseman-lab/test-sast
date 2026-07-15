@@ -6,6 +6,9 @@ on:
   pull_request:
     branches: [ main ]
 
+env:
+  ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION: true
+
 jobs:
   semgrep:
     runs-on: ubuntu-latest
@@ -16,24 +19,20 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       
-      - name: Run Semgrep scan
-        uses: returntocorp/semgrep-action@v1
-        with:
-          config: >
-            p/security-audit
-            p/owasp-top-ten
-            p/cwe-top-25
-            p/php
-          args: --json --output=semgrep-results.json
-        continue-on-error: true
-      
-      - name: Convert JSON to SARIF
+      - name: Run Semgrep scan and output SARIF
         run: |
           pip install semgrep
-          semgrep --json semgrep-results.json --sarif --output=semgrep.sarif
+          semgrep \
+            --config=p/security-audit \
+            --config=p/owasp-top-ten \
+            --config=p/cwe-top-25 \
+            --config=p/php \
+            --sarif \
+            --output=semgrep.sarif \
+            .
         continue-on-error: true
       
-      - name: Upload SARIF results
+      - name: Upload SARIF to GitHub
         uses: github/codeql-action/upload-sarif@v4
         if: always()
         with:

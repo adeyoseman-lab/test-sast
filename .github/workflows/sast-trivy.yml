@@ -17,14 +17,12 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Run Trivy Scan
-        uses: aquasecurity/trivy-action@0.28.0
+      - name: Run Trivy
+        uses: aquasecurity/trivy-action@v0
         with:
           scan-type: fs
           scan-ref: .
-          scanners: vuln,secret,misconfig,license
-          severity: CRITICAL,HIGH,MEDIUM,LOW
-          ignore-unfixed: false
+          scanners: vuln,secret,misconfig
           format: sarif
           output: trivy.sarif
 

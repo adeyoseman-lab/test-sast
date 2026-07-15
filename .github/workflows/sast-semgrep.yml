@@ -29,6 +29,8 @@ jobs:
             --config=p/php \
             --sarif \
             --output=semgrep.sarif \
+            --severity=INFO \
+            --verbose \
             .
         continue-on-error: true
       

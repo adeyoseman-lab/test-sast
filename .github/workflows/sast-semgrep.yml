@@ -19,24 +19,43 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       
-      - name: Run Semgrep scan and output SARIF
+      - name: Run Semgrep scan with comprehensive rules
         run: |
           pip install semgrep
           semgrep \
+            --config=p/php \
             --config=p/security-audit \
             --config=p/owasp-top-ten \
             --config=p/cwe-top-25 \
-            --config=p/php \
-            --sarif \
-            --output=semgrep.sarif \
-            --severity=INFO \
-            --verbose \
+            --config=p/flask \
+            --config=p/flask-security \
+            --config=p/injection \
+            --json \
+            --output=/tmp/semgrep-results.json \
             .
         continue-on-error: true
       
-      - name: Upload SARIF to GitHub
+      - name: Convert JSON to SARIF format
+        run: |
+          pip install semgrep
+          semgrep \
+            --config=p/php \
+            --config=p/security-audit \
+            --config=p/owasp-top-ten \
+            --config=p/cwe-top-25 \
+            --config=p/injection \
+            --sarif \
+            --output=semgrep.sarif \
+            .
+        continue-on-error: true
+      
+      - name: Upload SARIF results to GitHub
         uses: github/codeql-action/upload-sarif@v4
-        if: always()
+        if: always() && hashFiles('semgrep.sarif') != ''
         with:
           sarif_file: semgrep.sarif
           category: 'semgrep'
+      
+      - name: Display scan results
+        run: cat /tmp/semgrep-results.json 2>/dev/null || echo "No JSON results found"
+        continue-on-error: true

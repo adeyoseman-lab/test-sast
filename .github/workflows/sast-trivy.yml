@@ -2,30 +2,34 @@ name: SAST - Trivy Scan
 
 on:
   push:
-    branches: [ main ]
+    branches: [main]
   pull_request:
-    branches: [ main ]
+    branches: [main]
 
 jobs:
   trivy:
     runs-on: ubuntu-latest
+
     permissions:
       contents: read
       security-events: write
-    
+
     steps:
       - uses: actions/checkout@v4
-      
-      - name: Run Trivy
-        uses: aquasecurity/trivy-action@master
+
+      - name: Run Trivy Scan
+        uses: aquasecurity/trivy-action@0.28.0
         with:
-          scan-type: 'fs'
-          scan-ref: '.'
-          format: 'sarif'
-          output: 'trivy.sarif'
-      
+          scan-type: fs
+          scan-ref: .
+          scanners: vuln,secret,misconfig,license
+          severity: CRITICAL,HIGH,MEDIUM,LOW
+          ignore-unfixed: false
+          format: sarif
+          output: trivy.sarif
+
       - name: Upload SARIF
-        uses: github/codeql-action/upload-sarif@v3  # ✅ UBAH DARI v2 KE v3
         if: always()
+        uses: github/codeql-action/upload-sarif@v3
         with:
-          sarif_file: 'trivy.sarif'
+          sarif_file: trivy.sarif

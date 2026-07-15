@@ -1,4 +1,4 @@
-name: SAST - Node.js & PHP Security Analysis
+name: SAST - Semgrep Advanced
 
 on:
   push:
@@ -11,71 +11,36 @@ permissions:
   security-events: write
 
 jobs:
-  sast:
+  semgrep:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout source
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
+      - uses: actions/setup-python@v5
         with:
-          node-version: "20"
-
-      - name: Setup PHP
-        uses: shivammathur/setup-php@v2
-        with:
-          php-version: "8.2"
-
-      - name: Install Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: "3.x"
+          python-version: "3.11"
 
       - name: Install Semgrep
         run: |
           python -m pip install --upgrade pip
           pip install semgrep
 
-      - name: Install Node dependencies
-        run: |
-          if [ -f package-lock.json ]; then
-            npm ci
-          elif [ -f package.json ]; then
-            npm install
-          fi
-        continue-on-error: true
-
-      - name: Install PHP dependencies
-        run: |
-          if [ -f composer.json ]; then
-            composer install --no-interaction --prefer-dist
-          fi
-        continue-on-error: true
-
-      - name: Run Semgrep (OWASP + JS + PHP)
+      - name: Run Semgrep
         run: |
           semgrep scan \
             --config=auto \
-            --config=p/owasp-top-ten \
             --config=p/security-audit \
+            --config=p/owasp-top-ten \
             --config=p/javascript \
             --config=p/php \
             --sarif \
             --output semgrep.sarif
 
-      - name: Upload Semgrep SARIF
+      - name: Remap Severity
+        run: python .github/scripts/remap_semgrep.py
+
+      - name: Upload SARIF
         uses: github/codeql-action/upload-sarif@v3
         with:
-          sarif_file: semgrep.sarif
-
-      - name: Run npm audit
-        if: hashFiles('package-lock.json') != ''
-        run: |
-          npm audit --audit-level=low || true
-
-      - name: Run Composer audit
-        if: hashFiles('composer.lock') != ''
-        run: |
-          composer audit || true
+          sarif_file: semgrep-remapped.sarif

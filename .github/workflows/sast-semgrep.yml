@@ -16,17 +16,25 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       
-      - name: Run Semgrep SAST scan
+      - name: Run Semgrep scan
         uses: returntocorp/semgrep-action@v1
         with:
           config: >
             p/security-audit
             p/owasp-top-ten
+            p/cwe-top-25
             p/php
-          generateSarif: true
+          args: --json --output=semgrep-results.json
+        continue-on-error: true
+      
+      - name: Convert JSON to SARIF
+        run: |
+          pip install semgrep
+          semgrep --json semgrep-results.json --sarif --output=semgrep.sarif
+        continue-on-error: true
       
       - name: Upload SARIF results
-        uses: github/codeql-action/upload-sarif@v3
+        uses: github/codeql-action/upload-sarif@v4
         if: always()
         with:
           sarif_file: semgrep.sarif

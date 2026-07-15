@@ -1,4 +1,4 @@
-name: SAST - Semgrep PHP Security Scan
+name: SAST - CodeQL PHP Security Scan
 
 on:
   push:
@@ -6,56 +6,34 @@ on:
   pull_request:
     branches: [ main ]
 
-env:
-    FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
-
 jobs:
-  semgrep:
+  analyze:
+    name: Analyze PHP Code
     runs-on: ubuntu-latest
     permissions:
+      actions: read
       contents: read
       security-events: write
-    
+
+    strategy:
+      fail-fast: false
+      matrix:
+        language: [ 'php' ]
+
     steps:
-      - uses: actions/checkout@v4
-      
-      - name: Run Semgrep scan with comprehensive rules
-        run: |
-          pip install semgrep
-          semgrep \
-            --config=p/php \
-            --config=p/security-audit \
-            --config=p/owasp-top-ten \
-            --config=p/cwe-top-25 \
-            --config=p/flask \
-            --config=p/flask-security \
-            --config=p/injection \
-            --json \
-            --output=/tmp/semgrep-results.json \
-            .
-        continue-on-error: true
-      
-      - name: Convert JSON to SARIF format
-        run: |
-          pip install semgrep
-          semgrep \
-            --config=p/php \
-            --config=p/security-audit \
-            --config=p/owasp-top-ten \
-            --config=p/cwe-top-25 \
-            --config=p/injection \
-            --sarif \
-            --output=semgrep.sarif \
-            .
-        continue-on-error: true
-      
-      - name: Upload SARIF results to GitHub
-        uses: github/codeql-action/upload-sarif@v4
-        if: always() && hashFiles('semgrep.sarif') != ''
-        with:
-          sarif_file: semgrep.sarif
-          category: 'semgrep'
-      
-      - name: Display scan results
-        run: cat /tmp/semgrep-results.json 2>/dev/null || echo "No JSON results found"
-        continue-on-error: true
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Initialize CodeQL
+      uses: github/codeql-action/init@v4
+      with:
+        languages: ${{ matrix.language }}
+        queries: security-and-quality
+
+    - name: Autobuild
+      uses: github/codeql-action/autobuild@v4
+
+    - name: Perform CodeQL Analysis
+      uses: github/codeql-action/analyze@v4
+      with:
+        category: "/language:${{ matrix.language }}"

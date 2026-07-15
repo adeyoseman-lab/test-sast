@@ -1,92 +1,172 @@
 import json
 
-INPUT="semgrep.sarif"
-OUTPUT="semgrep-remapped.sarif"
+INPUT = "semgrep.sarif"
+OUTPUT = "semgrep-remapped.sarif"
 
-# Mapping rule -> (CVSS, OWASP, CWE)
-RULES={
+RULES = {
 
-"php.lang.security.eval-use.eval-use":
-(9.8,"A03:2021 Injection","CWE-95"),
+    "javascript.lang.security.audit.detect-eval-with-expression.detect-eval-with-expression": {
+        "title": "Code Injection via eval()",
+        "cvss": 9.8,
+        "owasp": "OWASP A03:2021 - Injection",
+        "cwe": "CWE-95",
+        "description": "User-controlled data reaches eval(), allowing arbitrary JavaScript execution.",
+        "impact": """An attacker may execute arbitrary JavaScript code, leading to:
+• Remote Code Execution
+• Complete application compromise
+• Data theft
+• Authentication bypass""",
+        "fix": """Avoid eval().
+Use JSON.parse(), switch statements, or predefined function maps instead.""",
+        "reference": "https://owasp.org/Top10/A03_2021-Injection/"
+    },
 
-"php.lang.security.exec-use.exec-use":
-(9.8,"A03:2021 Injection","CWE-78"),
+    "javascript.lang.security.detect-child-process.detect-child-process": {
+        "title": "Command Injection",
+        "cvss": 9.8,
+        "owasp": "OWASP A03:2021 - Injection",
+        "cwe": "CWE-78",
+        "description": "Unsanitized user input reaches child_process.exec().",
+        "impact": """Attackers can execute arbitrary operating system commands.""",
+        "fix": """Use execFile() or spawn() with argument arrays.
+Validate and whitelist user input.""",
+        "reference": "https://cwe.mitre.org/data/definitions/78.html"
+    },
 
-"javascript.lang.security.detect-child-process.detect-child-process":
-(9.8,"A03:2021 Injection","CWE-78"),
+    "javascript.lang.security.audit.sql-injection": {
+        "title": "SQL Injection",
+        "cvss": 9.8,
+        "owasp": "OWASP A03:2021 - Injection",
+        "cwe": "CWE-89",
+        "description": "Application concatenates user input into SQL query.",
+        "impact": """• Database disclosure
+• Authentication bypass
+• Data modification
+• Remote Code Execution (DB dependent)""",
+        "fix": """Use prepared statements / parameterized queries.""",
+        "reference": "https://cwe.mitre.org/data/definitions/89.html"
+    },
 
-"javascript.lang.security.audit.detect-eval-with-expression.detect-eval-with-expression":
-(9.8,"A03:2021 Injection","CWE-95"),
+    "javascript.lang.security.audit.xss": {
+        "title": "Cross Site Scripting (XSS)",
+        "cvss": 6.5,
+        "owasp": "OWASP A03:2021 - Injection",
+        "cwe": "CWE-79",
+        "description": "Untrusted data is rendered in HTML without proper escaping.",
+        "impact": """Attackers may steal cookies, hijack sessions, and execute arbitrary JavaScript.""",
+        "fix": """Escape output and use a templating engine with auto-escaping.""",
+        "reference": "https://cwe.mitre.org/data/definitions/79.html"
+    },
 
-"javascript.lang.security.audit.code-string-concat.code-string-concat":
-(8.2,"A03:2021 Injection","CWE-89"),
+    "php.lang.security.eval-use.eval-use": {
+        "title": "PHP eval() Code Injection",
+        "cvss": 9.8,
+        "owasp": "OWASP A03:2021 - Injection",
+        "cwe": "CWE-95",
+        "description": "PHP eval() executes attacker-controlled code.",
+        "impact": """Remote Code Execution.""",
+        "fix": """Remove eval(). Use safer alternatives.""",
+        "reference": "https://cwe.mitre.org/data/definitions/95.html"
+    },
 
-"php.lang.security.injection.echoed-request.echoed-request":
-(6.4,"A03:2021 Injection","CWE-79"),
+    "php.lang.security.exec-use.exec-use": {
+        "title": "PHP Command Injection",
+        "cvss": 9.8,
+        "owasp": "OWASP A03:2021 - Injection",
+        "cwe": "CWE-78",
+        "description": "Unsanitized input reaches exec().",
+        "impact": """Attackers may execute arbitrary OS commands.""",
+        "fix": """Use escapeshellarg() and validate user input.""",
+        "reference": "https://cwe.mitre.org/data/definitions/78.html"
+    },
 
-"php.lang.security.mcrypt-use.mcrypt-use":
-(5.5,"A02:2021 Cryptographic Failures","CWE-327"),
-
-"php.lang.security.md5.md5":
-(5.9,"A02:2021 Cryptographic Failures","CWE-327"),
-
-"php.lang.security.sha1.sha1":
-(5.9,"A02:2021 Cryptographic Failures","CWE-327"),
-
-"php.lang.security.file-upload.file-upload":
-(8.8,"A05:2021 Security Misconfiguration","CWE-434"),
-
-"php.lang.security.xxe":
-(8.5,"A05:2021","CWE-611"),
-
-"php.lang.security.ssrf":
-(8.8,"A10:2021 SSRF","CWE-918"),
-
-"php.lang.security.path-traversal":
-(8.1,"A01:2021","CWE-22"),
-
-"php.lang.security.open-redirect":
-(3.8,"A10:2021","CWE-601"),
-
-"generic.secrets":
-(9.8,"A02:2021","CWE-798"),
 }
 
-with open(INPUT) as f:
-    sarif=json.load(f)
+with open(INPUT, encoding="utf8") as f:
+    sarif = json.load(f)
 
-for run in sarif["runs"]:
+driver = sarif["runs"][0]["tool"]["driver"]
 
-    for r in run["results"]:
+rules_lookup = {}
+for r in driver.get("rules", []):
+    rules_lookup[r["id"]] = r
 
-        rid=r["ruleId"]
+for result in sarif["runs"][0]["results"]:
 
-        cvss=5.0
-        owasp="Unknown"
-        cwe="Unknown"
+    rid = result["ruleId"]
 
-        if rid in RULES:
-            cvss,owasp,cwe=RULES[rid]
+    if rid not in RULES:
+        continue
 
-        if cvss>=9:
-            level="error"
-        elif cvss>=7:
-            level="error"
-        elif cvss>=4:
-            level="warning"
-        elif cvss>0:
-            level="note"
-        else:
-            level="none"
+    info = RULES[rid]
 
-        r["level"]=level
+    cvss = info["cvss"]
 
-        props=r.setdefault("properties",{})
-        props["security-severity"]=str(cvss)
-        props["owasp"]=owasp
-        props["cwe"]=cwe
+    if cvss >= 9.0:
+        level = "error"
+    elif cvss >= 7.0:
+        level = "error"
+    elif cvss >= 4.0:
+        level = "warning"
+    elif cvss > 0:
+        level = "note"
+    else:
+        level = "none"
 
-with open(OUTPUT,"w") as f:
-    json.dump(sarif,f,indent=2)
+    result["level"] = level
 
-print("Done.")
+    props = result.setdefault("properties", {})
+    props["security-severity"] = str(cvss)
+
+    if rid in rules_lookup:
+
+        rule = rules_lookup[rid]
+
+        rule["shortDescription"] = {
+            "text": info["title"]
+        }
+
+        rule["fullDescription"] = {
+            "text": info["description"]
+        }
+
+        rule["help"] = {
+            "text": f"""
+Impact
+------
+
+{info['impact']}
+
+How to Fix
+----------
+
+{info['fix']}
+
+OWASP
+------
+
+{info['owasp']}
+
+CWE
+---
+
+{info['cwe']}
+
+CVSS
+----
+
+{info['cvss']}
+
+Reference
+---------
+
+{info['reference']}
+"""
+        }
+
+        rule["helpUri"] = info["reference"]
+
+with open(OUTPUT, "w", encoding="utf8") as f:
+    json.dump(sarif, f, indent=2)
+
+print("Generated", OUTPUT)

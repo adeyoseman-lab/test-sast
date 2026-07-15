@@ -1,4 +1,4 @@
-name: SAST - PHPStan Security Analysis
+name: SAST - Node.js & PHP Security Analysis
 
 on:
   push:
@@ -7,7 +7,7 @@ on:
     branches: [ main ]
 
 jobs:
-  phpstan:
+  security-analysis:
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -16,17 +16,41 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+      
       - name: Setup PHP
         uses: shivammathur/setup-php@v2
         with:
           php-version: '8.2'
           tools: phpstan
       
-      - name: Run PHPStan analysis
-        run: |
-          phpstan analyse --level=9 vulnerable-code.php --no-progress --error-format=json > /tmp/phpstan-results.json
+      - name: Install Node.js dependencies
+        run: npm install
         continue-on-error: true
       
-      - name: Display results
-        run: cat /tmp/phpstan-results.json || echo "No issues found"
+      - name: Run ESLint/Security Check
+        run: npx eslint vulnerable-app.js --format=json || true
+        continue-on-error: true
+      
+      - name: Run npm audit (Dependencies)
+        run: npm audit --json > /tmp/npm-audit.json || true
+        continue-on-error: true
+      
+      - name: Run PHPStan for PHP files
+        run: phpstan analyse vulnerable-code.php --level=9 --no-progress || true
+        continue-on-error: true
+      
+      - name: Run Semgrep for JavaScript
+        run: |
+          pip install semgrep
+          semgrep --config=p/javascript --config=p/security-audit vulnerable-app.js --json || true
+        continue-on-error: true
+      
+      - name: Display all results
+        run: |
+          echo "=== Node.js Security Analysis Complete ==="
+          echo "Check Actions logs above for detailed findings"
         continue-on-error: true

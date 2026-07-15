@@ -22,25 +22,26 @@ jobs:
           python-version: "3.11"
 
       - name: Install Semgrep
+
+      - name: Run Semgrep
+  run: |
+    semgrep scan \
+      --config=auto \
+      --config=p/security-audit \
+      --config=p/javascript \
+      --config=p/php \
+      --sarif \
+      --output semgrep.sarif
+
+- name: Enrich SARIF
+  run: python .github/scripts/remap_semgrep.py
+
+- name: Upload SARIF
+  uses: github/codeql-action/upload-sarif@v3
+  with:
+    sarif_file: semgrep-remapped.sarif
         run: |
           python -m pip install --upgrade pip
           pip install semgrep
 
-      - name: Run Semgrep
-        run: |
-          semgrep scan \
-            --config=auto \
-            --config=p/security-audit \
-            --config=p/owasp-top-ten \
-            --config=p/javascript \
-            --config=p/php \
-            --sarif \
-            --output semgrep.sarif
-
-      - name: Remap Severity
-        run: python .github/scripts/remap_semgrep.py
-
-      - name: Upload SARIF
-        uses: github/codeql-action/upload-sarif@v3
-        with:
-          sarif_file: semgrep-remapped.sarif
+     

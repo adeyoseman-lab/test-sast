@@ -6,28 +6,44 @@ on:
   pull_request:
     branches: [main]
 
+permissions:
+  contents: read
+  security-events: write
+
 jobs:
   trivy:
     runs-on: ubuntu-latest
 
-    permissions:
-      contents: read
-      security-events: write
-
     steps:
       - uses: actions/checkout@v4
 
-      - name: Run Trivy
-        uses: aquasecurity/trivy-action@v0
-        with:
-          scan-type: fs
-          scan-ref: .
-          scanners: vuln,secret,misconfig
-          format: sarif
-          output: trivy.sarif
+      - name: Install Trivy
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y wget gnupg lsb-release
+
+          wget -qO - https://aquasecurity.github.io/trivy-repo/deb/public.key \
+            | gpg --dearmor \
+            | sudo tee /usr/share/keyrings/trivy.gpg > /dev/null
+
+          echo "deb [signed-by=/usr/share/keyrings/trivy.gpg] https://aquasecurity.github.io/trivy-repo/deb $(lsb_release -sc) main" \
+            | sudo tee /etc/apt/sources.list.d/trivy.list
+
+          sudo apt-get update
+          sudo apt-get install -y trivy
+
+      - name: Verify Trivy
+        run: trivy --version
+
+      - name: Run Trivy Filesystem Scan
+        run: |
+          trivy fs . \
+            --scanners vuln,secret,misconfig \
+            --severity CRITICAL,HIGH,MEDIUM,LOW \
+            --format sarif \
+            --output trivy.sarif
 
       - name: Upload SARIF
-        if: always()
         uses: github/codeql-action/upload-sarif@v3
         with:
           sarif_file: trivy.sarif

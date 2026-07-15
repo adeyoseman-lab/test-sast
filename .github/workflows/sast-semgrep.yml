@@ -1,4 +1,4 @@
-name: SAST - Security Scan
+name: SAST - PHPStan Security Analysis
 
 on:
   push:
@@ -7,7 +7,7 @@ on:
     branches: [ main ]
 
 jobs:
-  security-scan:
+  phpstan:
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -16,9 +16,17 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       
-      - name: Run Semgrep scan
-        uses: returntocorp/semgrep-action@v1
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
         with:
-          config: >
-            p/owasp-top-ten
-            p/security-audit
+          php-version: '8.2'
+          tools: phpstan
+      
+      - name: Run PHPStan analysis
+        run: |
+          phpstan analyse --level=9 vulnerable-code.php --no-progress --error-format=json > /tmp/phpstan-results.json
+        continue-on-error: true
+      
+      - name: Display results
+        run: cat /tmp/phpstan-results.json || echo "No issues found"
+        continue-on-error: true

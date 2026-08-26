@@ -1,0 +1,34 @@
+name: Wazuh - GitHub Security Events
+
+on:
+  push:
+  pull_request:
+    types:
+      - opened
+      - reopened
+      - synchronize
+      - closed
+
+jobs:
+  send-event:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Show GitHub event
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          REPOSITORY: ${{ github.repository }}
+          ACTOR: ${{ github.actor }}
+          SHA: ${{ github.sha }}
+          REF: ${{ github.ref }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          PR_ACTION: ${{ github.event.action }}
+        run: |
+          echo "WAZUH_GITHUB_EVENT"
+          echo "event=$EVENT_NAME"
+          echo "repository=$REPOSITORY"
+          echo "actor=$ACTOR"
+          echo "sha=$SHA"
+          echo "ref=$REF"
+          echo "pr_number=$PR_NUMBER"
+          echo "pr_action=$PR_ACTION"

@@ -1,0 +1,34 @@
+name: Test Wazuh Self Hosted Runner
+
+on:
+  push:
+    branches:
+      - main
+      - develop
+
+  pull_request:
+
+jobs:
+  test-runner:
+    runs-on: self-hosted
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Check runner
+        run: |
+          echo "================================"
+          echo "GitHub Self-Hosted Runner OK"
+          echo "================================"
+          echo "Hostname:"
+          hostname
+
+          echo "OS:"
+          uname -a
+
+          echo "User:"
+          whoami
+
+          echo "Docker:"
+          docker --version

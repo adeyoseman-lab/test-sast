@@ -1,4 +1,4 @@
-name: Test Wazuh Self Hosted Runner
+name: Wazuh GitHub Runner Test
 
 on:
   push:
@@ -9,18 +9,18 @@ on:
   pull_request:
 
 jobs:
-  test-runner:
-    runs-on: self-hosted
+  wazuh-test:
+    runs-on: [self-hosted, wazuh, github, security]
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Check runner
+      - name: Show runner information
         run: |
-          echo "================================"
-          echo "GitHub Self-Hosted Runner OK"
-          echo "================================"
+          echo "=================================="
+          echo "WAZUH GITHUB RUNNER"
+          echo "=================================="
           echo "Hostname:"
           hostname
 
@@ -30,5 +30,17 @@ jobs:
           echo "User:"
           whoami
 
-          echo "Docker:"
+          echo "Working directory:"
+          pwd
+
+      - name: Test Docker
+        run: |
           docker --version
+
+      - name: Security test
+        run: |
+          echo "Security pipeline is working"
+          echo "Repository: $GITHUB_REPOSITORY"
+          echo "Branch/Ref: $GITHUB_REF"
+          echo "Commit: $GITHUB_SHA"
+          echo "Actor: $GITHUB_ACTOR"

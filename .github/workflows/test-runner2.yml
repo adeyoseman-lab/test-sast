@@ -1,0 +1,26 @@
+name: Test Wazuh Runner
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  test-runner:
+    runs-on: [self-hosted, Linux, X64, wazuh, github, security]
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Check Runner
+        run: |
+          echo "===== RUNNER INFO ====="
+          echo "Hostname: $(hostname)"
+          echo "User: $(whoami)"
+          echo "OS:"
+          uname -a
+
+      - name: Test Wazuh Server
+        run: |
+          echo "GitHub Actions berhasil dijalankan di self-hosted runner!"
+          echo "Server: $(hostname)"
